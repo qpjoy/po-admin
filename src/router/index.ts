@@ -25,7 +25,7 @@ const router = createRouter({
     {
       path: '/releases/create',
       name: 'create-release',
-      component: () => import('@/pages/CreateRelease.vue'),
+      component: () => import('@/pages/CreateReleaseSimple.vue'),
     },
     // Statistics dashboard disabled - backend API not implemented yet
     // TODO: Implement /api/admin/stats/* endpoints in backend

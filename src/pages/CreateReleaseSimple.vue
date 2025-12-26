@@ -314,19 +314,25 @@ const loadProviderConfig = async () => {
 
     // Load current config if exists
     if (latestData?.config) {
+      console.log('[CreateRelease] Loading config:', latestData.config);
+
       // Pre-fill with existing tunnels
       if (latestData.config.tunnels) {
-        form.value.tunnels = latestData.config.tunnels.map((t: any) => ({
-          id: t.id,
-          name: t.name,
-          enabled: t.enabled !== false,
-          ssh: {
-            host: t.ssh?.host || '',
-            port: t.ssh?.port || 22,
-            username: t.ssh?.username || form.value.providerId,
-          },
-          localPort: t.localPort || 1080,
-        }));
+        form.value.tunnels = latestData.config.tunnels.map((t: any) => {
+          const tunnel = {
+            id: t.id || '',
+            name: t.name || '',
+            enabled: t.enabled !== false,
+            ssh: {
+              host: t.ssh?.host || '',
+              port: t.ssh?.port || 22,
+              username: t.ssh?.username || form.value.providerId,
+            },
+            localPort: t.localPort || 1080,
+          };
+          console.log('[CreateRelease] Loaded tunnel:', tunnel);
+          return tunnel;
+        });
       }
 
       // Pre-fill routing
@@ -392,9 +398,19 @@ const handleSubmit = async () => {
   }
 
   // Validate tunnels
-  for (const tunnel of form.value.tunnels) {
-    if (!tunnel.id || !tunnel.name || !tunnel.ssh.host || !tunnel.ssh.username) {
-      Message.error(`隧道 "${tunnel.id || '(未命名)'}" 配置不完整`);
+  for (let i = 0; i < form.value.tunnels.length; i++) {
+    const tunnel = form.value.tunnels[i];
+    const missingFields: string[] = [];
+
+    if (!tunnel.id || tunnel.id.trim() === '') missingFields.push('隧道ID');
+    if (!tunnel.name || tunnel.name.trim() === '') missingFields.push('隧道名称');
+    if (!tunnel.ssh.host || tunnel.ssh.host.trim() === '') missingFields.push('SSH主机');
+    if (!tunnel.ssh.username || tunnel.ssh.username.trim() === '') missingFields.push('SSH用户名');
+    if (!tunnel.localPort || tunnel.localPort <= 0) missingFields.push('本地端口');
+
+    if (missingFields.length > 0) {
+      Message.error(`隧道 ${i + 1} "${tunnel.id || '(未命名)'}" 配置不完整，缺少: ${missingFields.join('、')}`);
+      console.error('Incomplete tunnel:', tunnel);
       return;
     }
   }

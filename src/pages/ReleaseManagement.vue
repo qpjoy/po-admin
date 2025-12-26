@@ -61,36 +61,29 @@
               </a-space>
             </template>
           </a-table-column>
-          <a-table-column title="更新字段" :width="200">
+          <a-table-column title="配置内容" :width="200">
             <template #cell="{ record }">
               <a-space wrap>
                 <a-tag
-                  v-if="record.fields?.tunnels"
+                  v-if="record.config?.tunnels"
                   color="green"
                   size="small"
                 >
-                  Tunnels
+                  {{ record.config.tunnels.length }} 隧道
                 </a-tag>
                 <a-tag
-                  v-if="record.fields?.routing"
+                  v-if="record.config?.routing"
                   color="blue"
                   size="small"
                 >
-                  Routing
+                  路由规则
                 </a-tag>
                 <a-tag
-                  v-if="record.fields?.sshKeys"
-                  color="orange"
-                  size="small"
-                >
-                  SSH Keys
-                </a-tag>
-                <a-tag
-                  v-if="record.fields?.tokens"
+                  v-if="hasExtraConfig(record.config)"
                   color="purple"
                   size="small"
                 >
-                  Tokens
+                  额外配置
                 </a-tag>
               </a-space>
             </template>
@@ -193,36 +186,28 @@
           </a-descriptions-item>
         </a-descriptions>
 
-        <a-divider>更新字段详情</a-divider>
+        <a-divider>完整配置详情</a-divider>
 
         <a-collapse :default-active-key="['1']">
           <a-collapse-item
-            v-if="selectedRelease.fields?.tunnels"
+            v-if="selectedRelease.config?.tunnels"
             key="1"
-            header="Tunnels 配置"
+            header="SSH 隧道配置"
           >
-            <pre>{{ JSON.stringify(selectedRelease.fields?.tunnels, null, 2) }}</pre>
+            <pre>{{ JSON.stringify(selectedRelease.config?.tunnels, null, 2) }}</pre>
           </a-collapse-item>
           <a-collapse-item
-            v-if="selectedRelease.fields?.routing"
+            v-if="selectedRelease.config?.routing"
             key="2"
-            header="Routing 配置"
+            header="路由配置"
           >
-            <pre>{{ JSON.stringify(selectedRelease.fields?.routing, null, 2) }}</pre>
+            <pre>{{ JSON.stringify(selectedRelease.config?.routing, null, 2) }}</pre>
           </a-collapse-item>
           <a-collapse-item
-            v-if="selectedRelease.fields?.sshKeys"
             key="3"
-            header="SSH Keys 配置"
+            header="完整配置 (JSON)"
           >
-            <pre>{{ JSON.stringify(selectedRelease.fields?.sshKeys, null, 2) }}</pre>
-          </a-collapse-item>
-          <a-collapse-item
-            v-if="selectedRelease.fields?.tokens"
-            key="4"
-            header="Tokens 配置"
-          >
-            <pre>{{ JSON.stringify(selectedRelease.fields?.tokens, null, 2) }}</pre>
+            <pre>{{ JSON.stringify(selectedRelease.config, null, 2) }}</pre>
           </a-collapse-item>
         </a-collapse>
       </div>
@@ -273,6 +258,13 @@ const getStrategyLabel = (type: string) => {
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('zh-CN');
+};
+
+const hasExtraConfig = (config: any) => {
+  if (!config) return false;
+  // Check if there are any fields beyond version, tunnels, and routing
+  const standardFields = ['version', 'tunnels', 'routing'];
+  return Object.keys(config).some(key => !standardFields.includes(key));
 };
 
 const loadProviders = async () => {

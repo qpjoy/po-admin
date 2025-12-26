@@ -51,15 +51,15 @@ export const sshKeyApi = {
     api.get<{ publicKey: string }>(`/providers/${providerId}/keys/${keyId}`),
 };
 
-// Release API
+// Release API - Simple Provider Release System
 export const releaseApi = {
   list: (providerId?: string) =>
-    api.get<Release[]>('/admin/releases', { params: { provider: providerId } }),
-  create: (data: Omit<Release, 'createdAt'>) => api.post<Release>('/admin/releases', data),
+    api.get<Release[]>('/provider-releases', { params: { provider: providerId } }),
+  create: (data: Omit<Release, 'createdAt'>) => api.post<Release>('/provider-releases', data),
   rollback: (providerId: string, toVersion: string) =>
-    api.post('/admin/releases/rollback', { providerId, toVersion }),
+    api.post('/provider-releases/rollback', { providerId, toVersion }),
   getLatest: (providerId: string) =>
-    api.get<Release>('/admin/releases/latest', { params: { provider: providerId } }),
+    api.get<Release>('/provider-releases/latest', { params: { provider: providerId } }),
 };
 
 export default api;

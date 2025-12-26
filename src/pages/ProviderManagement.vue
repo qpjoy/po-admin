@@ -58,27 +58,49 @@
     <!-- Create/Edit Provider Modal -->
     <a-modal
       v-model:visible="showCreateDialog"
-      :title="editingProvider ? '编辑供应商' : '添加供应商'"
+      :title="editingProvider ? '编辑供应商' : '创建新供应商'"
       @ok="handleSubmit"
       @cancel="resetForm"
-      width="600px"
+      width="650px"
     >
+      <a-alert v-if="!editingProvider" type="info" style="margin-bottom: 16px;" closable>
+        <template #icon>
+          <icon-info-circle />
+        </template>
+        <div>
+          <div style="font-weight: 600; margin-bottom: 4px;">🚀 创建供应商后将自动：</div>
+          <ol style="margin: 4px 0 0 16px; padding-left: 0;">
+            <li>在服务器上创建 <strong>nologin</strong> 用户: <code>/home/{{ providerForm.id || '{供应商ID}' }}</code></li>
+            <li>自动生成并注入 <strong>leader</strong> 角色的 SSH 公钥到 <code>~/.ssh/authorized_keys</code></li>
+            <li>私钥存储在数据库中，可在"SSH密钥管理"页面查看和下载</li>
+          </ol>
+        </div>
+      </a-alert>
+
       <a-form :model="providerForm" layout="vertical">
         <a-form-item label="供应商ID" required>
-          <a-input v-model="providerForm.id" placeholder="例如: wuxi" :disabled="!!editingProvider" />
-          <div class="form-tip">此ID将作为SSH用户名，例如: /home/wuxi/.ssh/authorized_keys</div>
+          <a-input
+            v-model="providerForm.id"
+            placeholder="例如: wuxi, zhoushan"
+            :disabled="!!editingProvider"
+          />
+          <div class="form-tip">
+            <icon-info-circle style="margin-right: 4px;" />
+            仅允许小写字母、数字和连字符，将作为服务器用户名: <code>/home/{{ providerForm.id || '{id}' }}</code>
+          </div>
         </a-form-item>
 
         <a-form-item label="供应商名称" required>
-          <a-input v-model="providerForm.name" placeholder="例如: 无锡代理" />
+          <a-input v-model="providerForm.name" placeholder="例如: 无锡团队, 舟山分公司" />
         </a-form-item>
 
         <a-form-item label="描述">
           <a-textarea
             v-model="providerForm.description"
-            placeholder="供应商描述信息"
+            placeholder="可选：添加供应商的描述信息"
             :max-length="200"
             show-word-limit
+            :auto-size="{ minRows: 2, maxRows: 4 }"
           />
         </a-form-item>
       </a-form>
@@ -90,7 +112,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Message } from '@arco-design/web-vue';
-import { IconPlus, IconEdit, IconDelete } from '@arco-design/web-vue/es/icon';
+import { IconPlus, IconEdit, IconDelete, IconInfoCircle } from '@arco-design/web-vue/es/icon';
 import { providerApi } from '@/api';
 import type { Provider } from '@/types';
 

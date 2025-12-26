@@ -442,9 +442,8 @@ const handleSubmit = async () => {
       }
     }
 
-    // Build release payload
+    // Build release payload in the field-based format the backend expects
     const releaseData = {
-      version: form.value.version,
       providerId: form.value.providerId,
       description: form.value.description,
       strategy: {
@@ -456,14 +455,29 @@ const handleSubmit = async () => {
       target: {
         roles: form.value.targetRoles,
       },
-      config: {
-        version: form.value.version,
-        tunnels: form.value.tunnels,
-        routing: {
-          defaultTunnel: form.value.routing.defaultTunnel,
-          rules: routingRules,
+      fields: {
+        tunnels: {
+          action: 'replace' as const,
+          config: {
+            version: form.value.version,
+            tunnels: form.value.tunnels,
+          },
+          requiresRestart: form.value.forceRestart,
         },
-        ...customConfig,
+        routing: {
+          action: 'replace' as const,
+          config: {
+            defaultTunnel: form.value.routing.defaultTunnel,
+            rules: routingRules,
+          },
+          requiresRestart: false,
+        },
+        ...(Object.keys(customConfig).length > 0 && {
+          customConfig: {
+            config: customConfig,
+            requiresRestart: false,
+          },
+        }),
       },
     };
 

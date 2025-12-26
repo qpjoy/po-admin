@@ -167,6 +167,17 @@
         </a-form-item>
 
         <a-form-item label="路由规则 (可选)">
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 12px; color: var(--color-text-3); margin-bottom: 8px;">快速添加常用域名:</div>
+            <a-space>
+              <a-button size="small" @click="addQuickDomain('*.x.com')">X</a-button>
+              <a-button size="small" @click="addQuickDomain('*.google.com')">Google</a-button>
+              <a-button size="small" @click="addQuickDomain('*.facebook.com')">Facebook</a-button>
+              <a-button size="small" @click="addQuickDomain('*.instagram.com')">Instagram</a-button>
+              <a-button size="small" @click="addQuickDomain('*.youtube.com')">YouTube</a-button>
+            </a-space>
+          </div>
+
           <a-space direction="vertical" fill style="width: 100%;">
             <a-card
               v-for="(rule, index) in form.config.routing.rules"
@@ -409,6 +420,27 @@ const addRule = () => {
 
 const removeRule = (index: number) => {
   form.value.config.routing.rules.splice(index, 1);
+};
+
+// Quick domain addition
+const addQuickDomain = (pattern: string) => {
+  // Check if this pattern already exists
+  const exists = form.value.config.routing.rules.some(r => r.pattern === pattern);
+  if (exists) {
+    Message.warning(`域名规则 ${pattern} 已存在`);
+    return;
+  }
+
+  // Add new rule with the pattern and default tunnel (if available)
+  const defaultTunnel = form.value.config.routing.defaultTunnel ||
+                       (form.value.config.tunnels.length > 0 ? form.value.config.tunnels[0].id : '');
+
+  form.value.config.routing.rules.push({
+    pattern,
+    tunnel: defaultTunnel,
+  });
+
+  Message.success(`已添加域名规则: ${pattern}`);
 };
 
 // Submit

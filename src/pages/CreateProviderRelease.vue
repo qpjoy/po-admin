@@ -153,8 +153,9 @@
         <!-- Routing Configuration -->
         <a-divider orientation="left">路由配置</a-divider>
 
-        <a-form-item label="默认隧道" required>
-          <a-select v-model="form.config.routing.defaultTunnel" placeholder="选择默认隧道">
+        <a-form-item label="默认隧道 (可选)">
+          <a-select v-model="form.config.routing.defaultTunnel" placeholder="选择默认隧道" allow-clear>
+            <a-option value="">不使用默认隧道</a-option>
             <a-option
               v-for="tunnel in form.config.tunnels"
               :key="tunnel.id"
@@ -163,18 +164,18 @@
               {{ tunnel.name }} ({{ tunnel.id }})
             </a-option>
           </a-select>
-          <div class="form-tip">未匹配规则的流量将使用此隧道</div>
+          <div class="form-tip">未匹配白名单规则的流量，如果设置默认隧道则使用此隧道，否则直接连接</div>
         </a-form-item>
 
         <a-form-item label="路由规则 (可选)">
           <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: var(--color-text-3); margin-bottom: 8px;">快速添加常用域名:</div>
+            <div style="font-size: 12px; color: var(--color-text-3); margin-bottom: 8px;">快速添加常用网站:</div>
             <a-space>
-              <a-button size="small" @click="addQuickDomain('*.x.com')">X</a-button>
-              <a-button size="small" @click="addQuickDomain('*.google.com')">Google</a-button>
-              <a-button size="small" @click="addQuickDomain('*.facebook.com')">Facebook</a-button>
-              <a-button size="small" @click="addQuickDomain('*.instagram.com')">Instagram</a-button>
-              <a-button size="small" @click="addQuickDomain('*.youtube.com')">YouTube</a-button>
+              <a-button size="small" @click="addPresetRule('google')">Google</a-button>
+              <a-button size="small" @click="addPresetRule('youtube')">YouTube</a-button>
+              <a-button size="small" @click="addPresetRule('x')">X (Twitter)</a-button>
+              <a-button size="small" @click="addPresetRule('facebook')">Facebook</a-button>
+              <a-button size="small" @click="addPresetRule('instagram')">Instagram</a-button>
             </a-space>
           </div>
 
@@ -184,7 +185,17 @@
               :key="index"
               :bordered="true"
               size="small"
+              style="margin-bottom: 12px;"
             >
+              <template #title>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <span>{{ rule.name || `规则 ${index + 1}` }}</span>
+                  <a-switch v-model="rule.enabled" size="small">
+                    <template #checked>启用</template>
+                    <template #unchecked>禁用</template>
+                  </a-switch>
+                </div>
+              </template>
               <template #extra>
                 <a-button
                   type="text"
@@ -195,10 +206,39 @@
                   删除
                 </a-button>
               </template>
+
               <a-row :gutter="16">
                 <a-col :span="12">
-                  <a-form-item label="域名模式">
-                    <a-input v-model="rule.pattern" placeholder="*.google.com" />
+                  <a-form-item label="规则名称">
+                    <a-input v-model="rule.name" placeholder="Google Services" />
+                  </a-form-item>
+                </a-col>
+                <a-col :span="6">
+                  <a-form-item label="优先级">
+                    <a-input-number v-model="rule.priority" :min="1" :max="100" style="width: 100%;" />
+                    <div class="form-tip" style="font-size: 11px;">数字越大优先级越高</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="6">
+                  <a-form-item label="规则类型">
+                    <a-select v-model="rule.type">
+                      <a-option value="whitelist">白名单</a-option>
+                      <a-option value="blacklist">黑名单</a-option>
+                    </a-select>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-row :gutter="16">
+                <a-col :span="12">
+                  <a-form-item label="域名列表 (每行一个)">
+                    <a-textarea
+                      :model-value="rule.domains.join('\n')"
+                      @update:model-value="rule.domains = $event.split('\n').filter(d => d.trim())"
+                      placeholder="google.com&#10;*.google.com&#10;googleapis.com"
+                      :auto-size="{ minRows: 3, maxRows: 8 }"
+                    />
+                    <div class="form-tip" style="font-size: 11px;">支持通配符: *.google.com</div>
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
@@ -209,10 +249,19 @@
                         :key="tunnel.id"
                         :value="tunnel.id"
                       >
-                        {{ tunnel.name }}
+                        {{ tunnel.name }} ({{ tunnel.id }})
                       </a-option>
                     </a-select>
                   </a-form-item>
+                  <div style="margin-top: 8px; padding: 8px; background: var(--color-fill-2); border-radius: 4px;">
+                    <div style="font-size: 12px; font-weight: 500; margin-bottom: 4px;">当前已添加 {{ rule.domains.length }} 个域名</div>
+                    <a-space wrap size="mini">
+                      <a-tag v-for="(domain, i) in rule.domains.slice(0, 5)" :key="i" size="small">
+                        {{ domain }}
+                      </a-tag>
+                      <a-tag v-if="rule.domains.length > 5" size="small">+{{ rule.domains.length - 5 }} more</a-tag>
+                    </a-space>
+                  </div>
                 </a-col>
               </a-row>
             </a-card>
@@ -327,8 +376,13 @@ const form = ref({
     routing: {
       defaultTunnel: '',
       rules: [] as Array<{
-        pattern: string;
+        id: string;
+        name: string;
+        type: 'whitelist' | 'blacklist';
+        domains: string[];
         tunnel: string;
+        priority: number;
+        enabled: boolean;
       }>,
     },
   },
@@ -410,11 +464,87 @@ const removeTunnel = (index: number) => {
   form.value.config.tunnels.splice(index, 1);
 };
 
+// Site presets with comprehensive domain lists
+const sitePresets = {
+  google: {
+    name: 'Google Services',
+    domains: [
+      'google.com',
+      '*.google.com',
+      'google.com.hk',
+      'googleapis.com',
+      '*.googleapis.com',
+      'gstatic.com',
+      '*.gstatic.com',
+      'googleusercontent.com',
+      '*.googleusercontent.com',
+    ],
+  },
+  youtube: {
+    name: 'YouTube',
+    domains: [
+      'youtube.com',
+      '*.youtube.com',
+      'youtu.be',
+      'googlevideo.com',
+      '*.googlevideo.com',
+      'ytimg.com',
+      '*.ytimg.com',
+      'ggpht.com',
+      '*.ggpht.com',
+      'wide-youtube.l.google.com',
+      'youtube-ui.l.google.com',
+    ],
+  },
+  x: {
+    name: 'X (Twitter)',
+    domains: [
+      'x.com',
+      '*.x.com',
+      'twitter.com',
+      '*.twitter.com',
+      'twimg.com',
+      '*.twimg.com',
+      't.co',
+    ],
+  },
+  facebook: {
+    name: 'Facebook',
+    domains: [
+      'facebook.com',
+      '*.facebook.com',
+      'fb.com',
+      '*.fb.com',
+      'fbcdn.net',
+      '*.fbcdn.net',
+      'fbsbx.com',
+      '*.fbsbx.com',
+    ],
+  },
+  instagram: {
+    name: 'Instagram',
+    domains: [
+      'instagram.com',
+      '*.instagram.com',
+      'cdninstagram.com',
+      '*.cdninstagram.com',
+    ],
+  },
+};
+
 // Routing rule management
 const addRule = () => {
+  const defaultTunnel = form.value.config.routing.defaultTunnel ||
+                       (form.value.config.tunnels.length > 0 ? form.value.config.tunnels[0].id : '');
+
   form.value.config.routing.rules.push({
-    pattern: '',
-    tunnel: '',
+    id: `rule-${Date.now()}`,
+    name: '',
+    type: 'whitelist',
+    domains: [],
+    tunnel: defaultTunnel,
+    priority: 10,
+    enabled: true,
   });
 };
 
@@ -422,25 +552,32 @@ const removeRule = (index: number) => {
   form.value.config.routing.rules.splice(index, 1);
 };
 
-// Quick domain addition
-const addQuickDomain = (pattern: string) => {
-  // Check if this pattern already exists
-  const exists = form.value.config.routing.rules.some(r => r.pattern === pattern);
+// Add preset rule
+const addPresetRule = (presetId: keyof typeof sitePresets) => {
+  const preset = sitePresets[presetId];
+  if (!preset) return;
+
+  // Check if this preset already exists
+  const exists = form.value.config.routing.rules.some(r => r.name === preset.name);
   if (exists) {
-    Message.warning(`域名规则 ${pattern} 已存在`);
+    Message.warning(`规则 "${preset.name}" 已存在`);
     return;
   }
 
-  // Add new rule with the pattern and default tunnel (if available)
   const defaultTunnel = form.value.config.routing.defaultTunnel ||
                        (form.value.config.tunnels.length > 0 ? form.value.config.tunnels[0].id : '');
 
   form.value.config.routing.rules.push({
-    pattern,
+    id: `preset-${presetId}`,
+    name: preset.name,
+    type: 'whitelist',
+    domains: [...preset.domains],
     tunnel: defaultTunnel,
+    priority: 10,
+    enabled: true,
   });
 
-  Message.success(`已添加域名规则: ${pattern}`);
+  Message.success(`已添加 ${preset.name} 规则，包含 ${preset.domains.length} 个域名`);
 };
 
 // Submit

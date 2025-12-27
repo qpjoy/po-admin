@@ -153,29 +153,32 @@
         <!-- Routing Configuration -->
         <a-divider orientation="left">路由配置</a-divider>
 
-        <a-form-item label="默认隧道 (可选)">
-          <a-select v-model="form.config.routing.defaultTunnel" placeholder="选择默认隧道" allow-clear>
-            <a-option value="">不使用默认隧道</a-option>
-            <a-option
-              v-for="tunnel in form.config.tunnels"
-              :key="tunnel.id"
-              :value="tunnel.id"
-            >
-              {{ tunnel.name }} ({{ tunnel.id }})
-            </a-option>
-          </a-select>
-          <div class="form-tip">未匹配白名单规则的流量，如果设置默认隧道则使用此隧道，否则直接连接</div>
-        </a-form-item>
-
-        <a-form-item label="路由规则 (可选)">
-          <div style="margin-bottom: 12px;">
-            <div style="font-size: 12px; color: var(--color-text-3); margin-bottom: 8px;">快速添加常用网站:</div>
-            <a-space>
-              <a-button size="small" @click="addPresetRule('google')">Google</a-button>
-              <a-button size="small" @click="addPresetRule('youtube')">YouTube</a-button>
-              <a-button size="small" @click="addPresetRule('x')">X (Twitter)</a-button>
-              <a-button size="small" @click="addPresetRule('facebook')">Facebook</a-button>
-              <a-button size="small" @click="addPresetRule('instagram')">Instagram</a-button>
+        <a-form-item label="路由规则">
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; color: var(--color-text-2); margin-bottom: 12px;">
+              快速添加常用网站路由规则:
+            </div>
+            <a-space size="medium" wrap>
+              <a-button type="outline" @click="addPresetRule('google')">
+                <template #icon><icon-plus /></template>
+                Google
+              </a-button>
+              <a-button type="outline" @click="addPresetRule('youtube')">
+                <template #icon><icon-plus /></template>
+                YouTube
+              </a-button>
+              <a-button type="outline" @click="addPresetRule('x')">
+                <template #icon><icon-plus /></template>
+                X (Twitter)
+              </a-button>
+              <a-button type="outline" @click="addPresetRule('facebook')">
+                <template #icon><icon-plus /></template>
+                Facebook
+              </a-button>
+              <a-button type="outline" @click="addPresetRule('instagram')">
+                <template #icon><icon-plus /></template>
+                Instagram
+              </a-button>
             </a-space>
           </div>
 
@@ -184,92 +187,121 @@
               v-for="(rule, index) in form.config.routing.rules"
               :key="index"
               :bordered="true"
-              size="small"
-              style="margin-bottom: 12px;"
+              style="margin-bottom: 16px;"
             >
               <template #title>
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <span>{{ rule.name || `规则 ${index + 1}` }}</span>
-                  <a-switch v-model="rule.enabled" size="small">
-                    <template #checked>启用</template>
-                    <template #unchecked>禁用</template>
-                  </a-switch>
-                </div>
-              </template>
-              <template #extra>
-                <a-button
-                  type="text"
-                  status="danger"
-                  size="small"
-                  @click="removeRule(index)"
-                >
-                  删除
-                </a-button>
+                <a-space size="large" style="width: 100%; justify-content: space-between;">
+                  <span style="font-weight: 600;">{{ rule.name || `规则 ${index + 1}` }}</span>
+                  <a-space>
+                    <a-switch v-model="rule.enabled" size="small">
+                      <template #checked>启用</template>
+                      <template #unchecked>禁用</template>
+                    </a-switch>
+                    <a-button
+                      type="text"
+                      status="danger"
+                      size="small"
+                      @click="removeRule(index)"
+                    >
+                      <template #icon><icon-delete /></template>
+                      删除
+                    </a-button>
+                  </a-space>
+                </a-space>
               </template>
 
               <a-row :gutter="16">
-                <a-col :span="12">
-                  <a-form-item label="规则名称">
+                <a-col :span="8">
+                  <a-form-item label="规则名称" required>
                     <a-input v-model="rule.name" placeholder="Google Services" />
                   </a-form-item>
                 </a-col>
-                <a-col :span="6">
-                  <a-form-item label="优先级">
+                <a-col :span="4">
+                  <a-form-item label="优先级" required>
                     <a-input-number v-model="rule.priority" :min="1" :max="100" style="width: 100%;" />
-                    <div class="form-tip" style="font-size: 11px;">数字越大优先级越高</div>
                   </a-form-item>
+                  <div class="form-tip" style="margin-top: -8px;">数字越大优先级越高</div>
                 </a-col>
                 <a-col :span="6">
-                  <a-form-item label="规则类型">
+                  <a-form-item label="规则类型" required>
                     <a-select v-model="rule.type">
                       <a-option value="whitelist">白名单</a-option>
                       <a-option value="blacklist">黑名单</a-option>
                     </a-select>
                   </a-form-item>
                 </a-col>
-              </a-row>
-
-              <a-row :gutter="16">
-                <a-col :span="12">
-                  <a-form-item label="域名列表 (每行一个)">
-                    <a-textarea
-                      :model-value="rule.domains.join('\n')"
-                      @update:model-value="rule.domains = $event.split('\n').filter(d => d.trim())"
-                      placeholder="google.com&#10;*.google.com&#10;googleapis.com"
-                      :auto-size="{ minRows: 3, maxRows: 8 }"
-                    />
-                    <div class="form-tip" style="font-size: 11px;">支持通配符: *.google.com</div>
-                  </a-form-item>
-                </a-col>
-                <a-col :span="12">
-                  <a-form-item label="使用隧道">
-                    <a-select v-model="rule.tunnel">
+                <a-col :span="6">
+                  <a-form-item label="使用隧道" required>
+                    <a-select v-model="rule.tunnel" placeholder="选择隧道">
                       <a-option
                         v-for="tunnel in form.config.tunnels"
                         :key="tunnel.id"
                         :value="tunnel.id"
                       >
-                        {{ tunnel.name }} ({{ tunnel.id }})
+                        {{ tunnel.name }}
                       </a-option>
                     </a-select>
                   </a-form-item>
-                  <div style="margin-top: 8px; padding: 8px; background: var(--color-fill-2); border-radius: 4px;">
-                    <div style="font-size: 12px; font-weight: 500; margin-bottom: 4px;">当前已添加 {{ rule.domains.length }} 个域名</div>
-                    <a-space wrap size="mini">
-                      <a-tag v-for="(domain, i) in rule.domains.slice(0, 5)" :key="i" size="small">
-                        {{ domain }}
-                      </a-tag>
-                      <a-tag v-if="rule.domains.length > 5" size="small">+{{ rule.domains.length - 5 }} more</a-tag>
-                    </a-space>
+                </a-col>
+              </a-row>
+
+              <a-row :gutter="16">
+                <a-col :span="16">
+                  <a-form-item label="域名列表" required>
+                    <a-textarea
+                      :model-value="rule.domains.join('\n')"
+                      @update:model-value="rule.domains = $event.split('\n').filter(d => d.trim())"
+                      placeholder="每行一个域名，支持通配符:&#10;google.com&#10;*.google.com&#10;googleapis.com"
+                      :auto-size="{ minRows: 4, maxRows: 10 }"
+                    />
+                  </a-form-item>
+                  <div class="form-tip" style="margin-top: -8px;">
+                    支持通配符: <code>*.google.com</code> 匹配所有子域名，<code>google.*</code> 匹配所有后缀
                   </div>
+                </a-col>
+                <a-col :span="8">
+                  <a-form-item label="域名统计">
+                    <div style="padding: 12px; background: var(--color-fill-2); border-radius: 4px; min-height: 120px;">
+                      <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--color-text-1);">
+                        已添加 {{ rule.domains.length }} 个域名
+                      </div>
+                      <a-space wrap size="small" v-if="rule.domains.length > 0">
+                        <a-tag v-for="(domain, i) in rule.domains.slice(0, 8)" :key="i" size="small" color="arcoblue">
+                          {{ domain }}
+                        </a-tag>
+                        <a-tag v-if="rule.domains.length > 8" size="small" color="gray">
+                          +{{ rule.domains.length - 8 }} more
+                        </a-tag>
+                      </a-space>
+                      <div v-else style="color: var(--color-text-3); font-size: 12px;">
+                        暂无域名
+                      </div>
+                    </div>
+                  </a-form-item>
                 </a-col>
               </a-row>
             </a-card>
           </a-space>
+
           <a-button type="dashed" long @click="addRule" style="margin-top: 8px;">
             <template #icon><icon-plus /></template>
-            添加路由规则
+            添加自定义路由规则
           </a-button>
+        </a-form-item>
+
+        <a-form-item label="默认隧道 (可选)">
+          <a-select v-model="form.config.routing.defaultTunnel" placeholder="不使用默认隧道（推荐）" allow-clear>
+            <a-option
+              v-for="tunnel in form.config.tunnels"
+              :key="tunnel.id"
+              :value="tunnel.id"
+            >
+              {{ tunnel.name }} ({{ tunnel.id }})
+            </a-option>
+          </a-select>
+          <div class="form-tip">
+            未匹配任何路由规则的流量：如果设置默认隧道则通过该隧道访问，否则直接连接（推荐）
+          </div>
         </a-form-item>
 
         <!-- Extra Config (JSON) -->
@@ -339,7 +371,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Message } from '@arco-design/web-vue';
-import { IconCheck, IconPlus } from '@arco-design/web-vue/es/icon';
+import { IconCheck, IconPlus, IconDelete } from '@arco-design/web-vue/es/icon';
 import { providerApi } from '@/api';
 import axios from 'axios';
 
@@ -534,15 +566,15 @@ const sitePresets = {
 
 // Routing rule management
 const addRule = () => {
-  const defaultTunnel = form.value.config.routing.defaultTunnel ||
-                       (form.value.config.tunnels.length > 0 ? form.value.config.tunnels[0].id : '');
+  // Use first tunnel if available, otherwise empty (will require selection)
+  const firstTunnel = form.value.config.tunnels.length > 0 ? form.value.config.tunnels[0].id : '';
 
   form.value.config.routing.rules.push({
     id: `rule-${Date.now()}`,
     name: '',
     type: 'whitelist',
     domains: [],
-    tunnel: defaultTunnel,
+    tunnel: firstTunnel,
     priority: 10,
     enabled: true,
   });
@@ -557,6 +589,12 @@ const addPresetRule = (presetId: keyof typeof sitePresets) => {
   const preset = sitePresets[presetId];
   if (!preset) return;
 
+  // Check if tunnels exist
+  if (form.value.config.tunnels.length === 0) {
+    Message.error('请先添加隧道');
+    return;
+  }
+
   // Check if this preset already exists
   const exists = form.value.config.routing.rules.some(r => r.name === preset.name);
   if (exists) {
@@ -564,15 +602,15 @@ const addPresetRule = (presetId: keyof typeof sitePresets) => {
     return;
   }
 
-  const defaultTunnel = form.value.config.routing.defaultTunnel ||
-                       (form.value.config.tunnels.length > 0 ? form.value.config.tunnels[0].id : '');
+  // Use first tunnel by default
+  const firstTunnel = form.value.config.tunnels[0].id;
 
   form.value.config.routing.rules.push({
     id: `preset-${presetId}`,
     name: preset.name,
     type: 'whitelist',
     domains: [...preset.domains],
-    tunnel: defaultTunnel,
+    tunnel: firstTunnel,
     priority: 10,
     enabled: true,
   });
@@ -607,9 +645,29 @@ const handleSubmit = async () => {
     }
   }
 
-  if (!form.value.config.routing.defaultTunnel) {
-    Message.error('请选择默认隧道');
-    return;
+  // Validate routing rules
+  for (let i = 0; i < form.value.config.routing.rules.length; i++) {
+    const rule = form.value.config.routing.rules[i];
+    if (!rule.name || rule.domains.length === 0 || !rule.tunnel) {
+      Message.error(`路由规则 ${i + 1} (${rule.name || '未命名'}) 配置不完整`);
+      return;
+    }
+
+    // Validate tunnel exists
+    const tunnelExists = form.value.config.tunnels.some(t => t.id === rule.tunnel);
+    if (!tunnelExists) {
+      Message.error(`路由规则 ${i + 1} (${rule.name}) 使用的隧道不存在`);
+      return;
+    }
+  }
+
+  // Validate default tunnel if set
+  if (form.value.config.routing.defaultTunnel) {
+    const tunnelExists = form.value.config.tunnels.some(t => t.id === form.value.config.routing.defaultTunnel);
+    if (!tunnelExists) {
+      Message.error('默认隧道配置的隧道不存在');
+      return;
+    }
   }
 
   try {
